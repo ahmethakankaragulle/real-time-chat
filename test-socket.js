@@ -205,6 +205,15 @@ function setupSocketListeners(socket, username) {
     console.log(`✅ ${username} mesaj gönderildi:`, data.messageId);
   });
 
+  // Typing event'leri
+  socket.on('user_typing_start', (data) => {
+    console.log(`✍️ ${username} kullanıcı yazmaya başladı:`, data.username);
+  });
+
+  socket.on('user_typing_stop', (data) => {
+    console.log(`⏹️ ${username} kullanıcı yazmayı durdurdu:`, data.username);
+  });
+
   // Hata yönetimi
   socket.on('error', (data) => {
     console.error(`❌ ${username} Socket hatası:`, data.message);
@@ -261,6 +270,33 @@ async function testSocketIO() {
         user2Socket.emit('message_received', { messageId });
       }
 
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Typing event testleri
+      console.log('✍️ Typing event testleri...');
+      
+      // Kullanıcı 1 yazmaya başlıyor
+      console.log('📝 Kullanıcı 1 yazmaya başlıyor...');
+      user1Socket.emit('typing_start', { conversationId });
+      
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Kullanıcı 1 yazmayı durduruyor
+      console.log('⏹️ Kullanıcı 1 yazmayı durduruyor...');
+      user1Socket.emit('typing_stop', { conversationId });
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Kullanıcı 2 yazmaya başlıyor
+      console.log('📝 Kullanıcı 2 yazmaya başlıyor...');
+      user2Socket.emit('typing_start', { conversationId });
+      
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Kullanıcı 2 yazmayı durduruyor
+      console.log('⏹️ Kullanıcı 2 yazmayı durduruyor...');
+      user2Socket.emit('typing_stop', { conversationId });
+      
       await new Promise(resolve => setTimeout(resolve, 1000));
     } else {
       console.log('⚠️ Conversation ID yok, Socket.IO testleri atlanıyor');

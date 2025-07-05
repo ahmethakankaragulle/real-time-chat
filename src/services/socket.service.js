@@ -56,6 +56,14 @@ class SocketService {
         await this.handleMessageReceived(socket, data);
       });
 
+      socket.on('typing_start', async (data) => {
+        await this.handleTypingStart(socket, data);
+      });
+
+      socket.on('typing_stop', async (data) => {
+        await this.handleTypingStop(socket, data);
+      });
+
       socket.on('disconnect', async () => {
         await this.handleUserDisconnection(socket);
       });
@@ -199,6 +207,70 @@ class SocketService {
       console.log(`Mesaj okundu: ${messageId} - Okuyan: ${socket.userId}`);
     } catch (error) {
       console.error('Mesaj okundu işaretleme hatası:', error);
+      socket.emit('error', { message: error.message });
+    }
+  }
+
+  async handleTypingStart(socket, data) {
+    try {
+      const { conversationId } = data;
+      
+      if (!conversationId) {
+        socket.emit('error', { message: 'Conversation ID gerekli' });
+        return;
+      }
+
+      const conversation = await conversationService.getConversationById(conversationId, socket.userId);
+      
+      if (conversation.otherParticipant) {
+        const otherUserId = conversation.otherParticipant._id;
+        const otherSocketId = this.connectedUsers.get(otherUserId.toString());
+        
+        if (otherSocketId) {
+          this.io.to(otherSocketId).emit('user_typing_start', {
+            conversationId,
+            userId: socket.userId,
+            username: socket.user.username,
+            timestamp: new Date()
+          });
+        }
+      }
+
+      console.log(`Kullanıcı yazmaya başladı: ${socket.userId} - Conversation: ${conversationId}`);
+    } catch (error) {
+      console.error('Typing start hatası:', error);
+      socket.emit('error', { message: error.message });
+    }
+  }
+
+  async handleTypingStop(socket, data) {
+    try {
+      const { conversationId } = data;
+      
+      if (!conversationId) {
+        socket.emit('error', { message: 'Conversation ID gerekli' });
+        return;
+      }
+
+      const conversation = await conversationService.getConversationById(conversationId, socket.userId);
+      
+      if (conversation.otherParticipant) {
+        const otherUserId = conversation.otherParticipant._id;
+        const otherSocketId = this.connectedUsers.get(otherUserId.toString());
+        
+        if (otherSocketId) {
+          this.io.to(otherSocketId).emit('user_typing_stop', {
+            conversationId,
+            userId: socket.userId,
+            username: socket.user.username,
+            timestamp: new Date()
+          });
+        }
+      }
+
+      console.log(`Kullanıcı yazmayı durdurdu: ${socket.userId} - Conversation: ${conversationId}`);
+    } catch (error) {
+      console.error('Typing stop hatası:', error);
       socket.emit('error', { message: error.message });
     }
   }

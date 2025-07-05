@@ -1,6 +1,5 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 
-// Swagger konfigürasyonu
 const swaggerOptions = {
   definition: {
     openapi: '3.0.0',

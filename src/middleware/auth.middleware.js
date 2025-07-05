@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model.js';
 import userService from '../services/user.service.js';
+import redisService from '../services/redis.service.js';
 
 const auth = async (req, res, next) => {
   try {
@@ -14,6 +15,14 @@ const auth = async (req, res, next) => {
     }
 
     const token = authHeader.substring(7);
+    
+    const isBlacklisted = await redisService.isTokenBlacklisted(token);
+    if (isBlacklisted) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Token geçersiz' 
+      });
+    }
     
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     

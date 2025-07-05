@@ -129,6 +129,54 @@ class RedisService {
     }
   }
 
+
+  async addToBlacklist(token, expiresIn) {
+    try { 
+      const ttl = Math.ceil(expiresIn / 1000);
+      await this.client.setEx(`blacklist:${token}`, ttl, '1');
+      this.logger.info(`Token blacklist'e eklendi: ${token.substring(0, 20)}...`);
+    } catch (error) {
+      this.logger.error('Token blacklist ekleme hatası:', error);
+    }
+  }
+
+  async isTokenBlacklisted(token) {
+    try {
+      const exists = await this.client.exists(`blacklist:${token}`);
+      return exists === 1;
+    } catch (error) {
+      this.logger.error('Token blacklist kontrol hatası:', error);
+      return false;
+    }
+  }
+
+  async removeFromBlacklist(token) {
+    try {
+      await this.client.del(`blacklist:${token}`);
+      this.logger.info(`Token blacklist'ten kaldırıldı: ${token.substring(0, 20)}...`);
+    } catch (error) {
+      this.logger.error('Token blacklist silme hatası:', error);
+    }
+  }
+
+  async clearExpiredBlacklist() {
+    try {
+      this.logger.info('Blacklist temizlik işlemi tamamlandı');
+    } catch (error) {
+      this.logger.error('Blacklist temizlik hatası:', error);
+    }
+  }
+
+  async getBlacklistCount() {
+    try {
+      const keys = await this.client.keys('blacklist:*');
+      return keys.length;
+    } catch (error) {
+      this.logger.error('Blacklist sayısı alma hatası:', error);
+      return 0;
+    }
+  }
+
   async disconnect() {
     if (this.client) {
       await this.client.quit();

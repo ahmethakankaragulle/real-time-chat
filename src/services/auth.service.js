@@ -87,12 +87,43 @@ class AuthService {
     };
   }
 
-  async refreshToken(refreshToken) {
+  async refreshToken(refreshToken, oldAccessToken = null) {
+    const isBlacklisted = await redisService.isTokenBlacklisted(refreshToken);
+    if (isBlacklisted) {
+      throw new Error('Geçersiz refresh token');
+    }
+
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
     
     const user = await User.findById(decoded.userId);
     if (!user || !user.isActive) {
       throw new Error('Geçersiz refresh token');
+    } 
+
+    if (oldAccessToken) {
+      try {
+        const decodedAccess = jwt.decode(oldAccessToken);
+        if (decodedAccess && decodedAccess.exp) {
+          const expiresIn = (decodedAccess.exp * 1000) - Date.now();
+          if (expiresIn > 0) {
+            await redisService.addToBlacklist(oldAccessToken, expiresIn);
+          }
+        }
+      } catch (error) {
+        console.error('Eski access token blacklist ekleme hatası:', error);
+      }
+    }
+
+    try {
+      const decodedRefresh = jwt.decode(refreshToken);
+      if (decodedRefresh && decodedRefresh.exp) {
+        const expiresIn = (decodedRefresh.exp * 1000) - Date.now();
+        if (expiresIn > 0) {
+          await redisService.addToBlacklist(refreshToken, expiresIn);
+        }
+      }
+    } catch (error) {
+      console.error('Eski refresh token blacklist ekleme hatası:', error);
     }
 
     const newAccessToken = jwt.sign(
@@ -101,17 +132,52 @@ class AuthService {
       { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
     );
 
+    const newRefreshToken = jwt.sign(
+      { userId: user._id },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d' }
+    );
+
     return {
-      accessToken: newAccessToken
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken
     };
   }
 
-  async logoutUser(userId) {
+  async logoutUser(userId, accessToken, refreshToken = null) {
     await User.findByIdAndUpdate(userId, {
       lastSeen: new Date()
     });
     
     await redisService.removeOnlineUser(userId);
+
+    if (accessToken) {
+      try {
+        const decoded = jwt.decode(accessToken);
+        if (decoded && decoded.exp) {
+          const expiresIn = (decoded.exp * 1000) - Date.now();
+          if (expiresIn > 0) {
+            await redisService.addToBlacklist(accessToken, expiresIn);
+          }
+        }
+      } catch (error) {
+        console.error('Access token blacklist ekleme hatası:', error);
+      }
+    }
+
+    if (refreshToken) {
+      try {
+        const decoded = jwt.decode(refreshToken);
+        if (decoded && decoded.exp) {
+          const expiresIn = (decoded.exp * 1000) - Date.now();
+          if (expiresIn > 0) {
+            await redisService.addToBlacklist(refreshToken, expiresIn);
+          }
+        }
+      } catch (error) {
+        console.error('Refresh token blacklist ekleme hatası:', error);
+      }
+    }
   }
 
   async getUserById(userId) {

@@ -122,8 +122,6 @@ router.post('/login', loginLimiter, async (req, res) => {
  *   post:
  *     summary: Token yenileme
  *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -135,15 +133,37 @@ router.post('/login', loginLimiter, async (req, res) => {
  *             properties:
  *               refreshToken:
  *                 type: string
+ *                 description: Mevcut refresh token
+ *               accessToken:
+ *                 type: string
+ *                 description: Süresi dolmuş access token (blacklist'e eklenecek)
  *     responses:
  *       200:
  *         description: Token yenilendi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     accessToken:
+ *                       type: string
+ *                       description: Yeni access token
+ *                     refreshToken:
+ *                       type: string
+ *                       description: Yeni refresh token
  *       401:
  *         description: Geçersiz refresh token
  */
-router.post('/refresh', auth, async (req, res) => {
+router.post('/refresh', async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const { refreshToken, accessToken } = req.body;
 
     if (!refreshToken) {
       return res.status(400).json({
@@ -152,7 +172,7 @@ router.post('/refresh', auth, async (req, res) => {
       });
     }
 
-    const result = await authService.refreshToken(refreshToken);
+    const result = await authService.refreshToken(refreshToken, accessToken);
 
     res.json({
       success: true,
@@ -176,6 +196,16 @@ router.post('/refresh', auth, async (req, res) => {
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: İsteğe bağlı refresh token (blacklist'e eklenecek)
  *     responses:
  *       200:
  *         description: Çıkış başarılı
@@ -184,7 +214,10 @@ router.post('/refresh', auth, async (req, res) => {
  */
 router.post('/logout', auth, async (req, res) => {
   try {
-    await authService.logoutUser(req.user._id);
+    const accessToken = req.header('Authorization').substring(7);
+    const { refreshToken } = req.body;
+    
+    await authService.logoutUser(req.user._id, accessToken, refreshToken);
 
     res.json({
       success: true,

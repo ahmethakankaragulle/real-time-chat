@@ -32,6 +32,56 @@ class RedisService {
     }
   }
 
+  async setUserOnline(userId, socketId) {
+    try {
+      const userKey = `user:${userId}`;
+      const userData = {
+        userId: userId.toString(),
+        socketId: socketId,
+        onlineAt: new Date().toISOString(),
+        isOnline: true
+      };
+      
+      await this.client.setEx(userKey, 3600, JSON.stringify(userData));
+
+      await this.addOnlineUser(userId);
+      
+      this.logger.info(`Kullanıcı online: ${userId} - Socket: ${socketId}`);
+    } catch (error) {
+      this.logger.error('Kullanıcı online set hatası:', error);
+    }
+  }
+
+  async setUserOffline(userId) {
+    try {
+      const userKey = `user:${userId}`;
+      await this.client.del(userKey);
+
+      await this.removeOnlineUser(userId);
+      
+      this.logger.info(`Kullanıcı offline: ${userId}`);
+    } catch (error) {
+      this.logger.error('Kullanıcı offline set hatası:', error);
+    }
+  }
+
+  async getUserSocketId(userId) {
+    try {
+      const userKey = `user:${userId}`;
+      const userData = await this.client.get(userKey);
+      
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        return parsed.socketId;
+      }
+      
+      return null;
+    } catch (error) {
+      this.logger.error('Kullanıcı socket ID alma hatası:', error);
+      return null;
+    }
+  }
+
   async addOnlineUser(userId) {
     try {
       await this.client.sAdd('online_users', userId.toString());
@@ -128,7 +178,6 @@ class RedisService {
       this.logger.error('Session delete hatası:', error);
     }
   }
-
 
   async addToBlacklist(token, expiresIn) {
     try { 

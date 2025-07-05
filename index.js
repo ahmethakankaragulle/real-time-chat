@@ -5,8 +5,11 @@ import http from 'http';
 import mongoose from 'mongoose';
 import swaggerUi from 'swagger-ui-express';
 import redisService from './src/services/redis.service.js';
+import socketService from './src/services/socket.service.js';
 import userRoute from './src/routes/user.route.js';
 import authRoute from './src/routes/auth.route.js';
+import conversationRoute from './src/routes/conversation.route.js';
+import messageRoute from './src/routes/message.route.js';
 import authMiddleware from './src/middleware/auth.middleware.js';
 import swaggerSpec from './src/config/swagger.config.js';
 
@@ -15,7 +18,16 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-app.use(cors());
+// Socket.IO'yu başlat
+socketService.initialize(server);
+
+// CORS ayarları - tüm isteklere izin ver
+app.use(cors({
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -25,9 +37,15 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // Routes
 app.use('/api/auth', authRoute);
 app.use('/api/user', authMiddleware, userRoute);
+app.use('/api/conversations', authMiddleware, conversationRoute);
+app.use('/api/messages', authMiddleware, messageRoute);
 
 app.get('/healthcheck', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    connectedUsers: socketService.getConnectedUsersCount()
+  });
 });
 
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/live-chat')
@@ -38,11 +56,11 @@ redisService.connect()
   .then(() => console.log('Redis bağlantısı başarılı'))
   .catch(err => console.error('Redis bağlantı hatası:', err));
 
-
 const PORT = process.env.PORT || 3001;
 
 server.listen(PORT, () => {
   console.log(`Sunucu ${PORT} portunda çalışıyor`);
+  console.log(`Socket.IO sunucusu başlatıldı`);
 });
 
 export default app; 

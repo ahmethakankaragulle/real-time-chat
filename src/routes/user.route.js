@@ -98,8 +98,6 @@ router.get('/online', auth, async (req, res) => {
  *             properties:
  *               username:
  *                 type: string
- *               avatar:
- *                 type: string
  *     responses:
  *       200:
  *         description: Profil güncellendi
@@ -108,12 +106,11 @@ router.get('/online', auth, async (req, res) => {
  */
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { username, avatar } = req.body;
+    const { username } = req.body;
     const userId = req.user._id;
 
     const updateData = {};
     if (username) updateData.username = username;
-    if (avatar) updateData.avatar = avatar;
 
     const user = await userService.updateUserProfile(userId, updateData);
 
@@ -124,6 +121,93 @@ router.put('/profile', auth, async (req, res) => {
     });
   } catch (error) {
     console.error('Profile update error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Sunucu hatası'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/user/online-count:
+ *   get:
+ *     summary: Anlık online kullanıcı sayısı
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Online kullanıcı sayısı
+ *       401:
+ *         description: Yetkilendirme hatası
+ */
+router.get('/online-count', auth, async (req, res) => {
+  try {
+    const onlineCount = await redisService.getOnlineUserCount();
+
+    res.json({
+      success: true,
+      data: {
+        onlineCount,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Online count error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Sunucu hatası'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/user/check-online/{userId}:
+ *   get:
+ *     summary: Belirli kullanıcının online durumu
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Kontrol edilecek kullanıcı ID'si
+ *     responses:
+ *       200:
+ *         description: Kullanıcının online durumu
+ *       401:
+ *         description: Yetkilendirme hatası
+ *       400:
+ *         description: Geçersiz kullanıcı ID'si
+ */
+router.get('/check-online/:userId', auth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Kullanıcı ID\'si gerekli'
+      });
+    }
+
+    const isOnline = await redisService.isUserOnline(userId);
+
+    res.json({
+      success: true,
+      data: {
+        userId,
+        isOnline,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Check online status error:', error);
     res.status(500).json({
       success: false,
       message: 'Sunucu hatası'

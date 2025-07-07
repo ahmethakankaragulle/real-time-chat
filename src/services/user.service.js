@@ -3,6 +3,7 @@ import redisService from './redis.service.js';
 import elasticsearchService from './elasticsearch.service.js';
 
 class UserService {
+  // kullanıcıları listele
   async getUsersList(page = 1, limit = 20) {
     const skip = (page - 1) * limit;
 
@@ -35,6 +36,7 @@ class UserService {
     };
   }
 
+  // online kullanıcıları getir
   async getOnlineUsers() {
     const onlineUserIds = await redisService.getOnlineUsers();
     const onlineCount = await redisService.getOnlineUserCount();
@@ -54,30 +56,35 @@ class UserService {
     };
   }
 
+  // online kullanıcıları aktiviteye göre getir
   async getOnlineUsersWithActivity(userId) {
     await this.updateUserLastSeen(userId);
     
     return await this.getOnlineUsers();
   }
 
+  // kullanıcıları listele
   async getUsersListWithActivity(userId, page = 1, limit = 20) {
     await this.updateUserLastSeen(userId);
     
     return await this.getUsersList(page, limit);
   }
 
+  // kullanıcının son görünüm zamanını güncelle
   async updateUserLastSeen(userId) {
     await User.findByIdAndUpdate(userId, {
       lastSeen: new Date()
     });
   }
 
+  // kullanıcının aktivitesini güncelle
   async updateUserActivity(userId) {
     await redisService.addOnlineUser(userId);
     
     await this.updateUserLastSeen(userId);
   }
 
+  // kullanıcı profilini güncelle
   async updateUserProfile(userId, updateData) {
     const user = await User.findByIdAndUpdate(
       userId,
@@ -85,7 +92,7 @@ class UserService {
       { new: true, runValidators: true }
     ).select('-password');
 
-    // Elasticsearch'te güncelle
+    // elasticsearch
     try {
       await elasticsearchService.updateUser(userId.toString(), updateData);
     } catch (error) {

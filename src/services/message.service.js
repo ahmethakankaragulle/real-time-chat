@@ -5,6 +5,7 @@ import conversationService from './conversation.service.js';
 import elasticsearchService from './elasticsearch.service.js';
 
 class MessageService {
+  // mesaj gönder
   async sendMessage(senderId, content, conversationId = null, receiverId = null) {
     if (!content || content.trim().length === 0) {
       throw new Error('Mesaj içeriği gerekli');
@@ -52,9 +53,8 @@ class MessageService {
 
     await message.populate('sender', 'username');
 
-    // Elasticsearch'e indeksle
+    // Elasticsearch
     try {
-      // Alıcı bilgisini bul
       let receiverUsername = '';
       if (receiverId) {
         const receiver = await User.findById(receiverId).select('username');
@@ -78,7 +78,6 @@ class MessageService {
       await elasticsearchService.indexMessage(messageData);
     } catch (error) {
       console.error('Elasticsearch indeksleme hatası:', error);
-      // Elasticsearch hatası mesaj gönderimini engellemez
     }
 
     return {
@@ -87,6 +86,7 @@ class MessageService {
     };
   }
 
+  // conversation'a göre mesajları getir
   async getMessagesByConversation(conversationId, userId, page = 1, limit = 50) {
     const skip = (page - 1) * limit;
 
@@ -118,6 +118,7 @@ class MessageService {
     };
   }
 
+  // mesajı okundu olarak işaretle
   async markMessageAsRead(messageId, userId) {    
     const message = await Message.findById(messageId);
     if (!message) {
@@ -133,7 +134,7 @@ class MessageService {
     message.readAt = new Date();
     await message.save();
 
-    // Elasticsearch'te güncelle
+    // Elasticsearch
     try {
       await elasticsearchService.updateMessage(messageId.toString(), {
         isRead: true,
@@ -146,6 +147,7 @@ class MessageService {
     return message;
   }
 
+  // mesajı getir
   async getMessageById(messageId) {
     const message = await Message.findById(messageId)
       .populate('sender', 'username');
@@ -157,6 +159,7 @@ class MessageService {
     return message;
   }
 
+  // okunmamış mesaj sayısını getir
   async getUnreadMessageCount(conversationId, userId) {
     return await Message.countDocuments({
       conversationId,

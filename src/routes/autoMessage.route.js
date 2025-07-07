@@ -3,6 +3,7 @@ import autoMessageScheduler from '../services/autoMessageScheduler.service.js';
 import queueManager from '../services/queueManager.service.js';
 import messageConsumer from '../services/messageConsumer.service.js';
 import rabbitmqService from '../services/rabbitmq.service.js';
+import autoMessageService from '../services/autoMessage.service.js';
 import auth from '../middleware/auth.middleware.js';
 import { validateAutoMessageId } from '../middleware/validation.middleware.js';
 
@@ -89,7 +90,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/auto-message/start-system:
+ * /api/v1/auto-messages/start-system:
  *   post:
  *     summary: Otomatik mesaj sistemini başlat
  *     description: RabbitMQ bağlantısını kurar ve tüm otomatik mesaj servislerini başlatır
@@ -146,7 +147,7 @@ router.post('/start-system', auth, async (req, res) => {
 
 /**
  * @swagger
- * /api/auto-message/stop-system:
+ * /api/v1/auto-messages/stop-system:
  *   post:
  *     summary: Otomatik mesaj sistemini durdur
  *     description: Tüm otomatik mesaj servislerini durdurur
@@ -201,7 +202,7 @@ router.post('/stop-system', auth, async (req, res) => {
 
 /**
  * @swagger
- * /api/auto-message/status:
+ * /api/v1/auto-messages/status:
  *   get:
  *     summary: Sistem durumunu kontrol et
  *     description: Otomatik mesaj sisteminin tüm bileşenlerinin durumunu gösterir
@@ -280,7 +281,7 @@ router.get('/status', auth, async (req, res) => {
 
 /**
  * @swagger
- * /api/auto-message/trigger-planning:
+ * /api/v1/auto-messages/trigger-planning:
  *   post:
  *     summary: Manuel planlama tetikle
  *     description: Otomatik mesaj planlamasını manuel olarak tetikler
@@ -332,7 +333,7 @@ router.post('/trigger-planning', auth, async (req, res) => {
 
 /**
  * @swagger
- * /api/auto-message/trigger-queue-processing:
+ * /api/v1/auto-messages/trigger-queue-processing:
  *   post:
  *     summary: Manuel kuyruk işleme tetikle
  *     description: Kuyruk işleme sürecini manuel olarak tetikler
@@ -384,7 +385,7 @@ router.post('/trigger-queue-processing', auth, async (req, res) => {
 
 /**
  * @swagger
- * /api/auto-message/queue-message/{autoMessageId}:
+ * /api/v1/auto-messages/queue-message/{autoMessageId}:
  *   post:
  *     summary: Belirli bir mesajı kuyruğa ekle
  *     description: Belirli bir otomatik mesajı manuel olarak kuyruğa ekler
@@ -449,7 +450,7 @@ router.post('/queue-message/:autoMessageId', auth, validateAutoMessageId, async 
 
 /**
  * @swagger
- * /api/auto-message/process-message/{autoMessageId}:
+ * /api/v1/auto-messages/process-message/{autoMessageId}:
  *   post:
  *     summary: Belirli bir mesajı işle
  *     description: Belirli bir otomatik mesajı manuel olarak işler
@@ -514,7 +515,7 @@ router.post('/process-message/:autoMessageId', auth, validateAutoMessageId, asyn
 
 /**
  * @swagger
- * /api/auto-message/send-test-message:
+ * /api/v1/auto-messages/send-test-message:
  *   post:
  *     summary: Test mesajı gönder
  *     description: Test amaçlı bir mesajı kuyruğa ekler
@@ -566,7 +567,7 @@ router.post('/send-test-message', auth, async (req, res) => {
 
 /**
  * @swagger
- * /api/auto-message/statistics:
+ * /api/v1/auto-messages/statistics:
  *   get:
  *     summary: Sistem istatistiklerini al
  *     description: Otomatik mesaj sisteminin performans istatistiklerini gösterir
@@ -622,17 +623,9 @@ router.get('/statistics', auth, async (req, res) => {
   }
 });
 
-// Kuyruk temizleme (sadece admin)
+// Kuyruk temizleme
 router.post('/clear-queue', auth, async (req, res) => {
   try {
-    // Admin kontrolü (basit implementasyon)
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Bu işlem için admin yetkisi gerekli'
-      });
-    }
-
     await queueManager.clearQueue();
     
     res.json({
@@ -673,6 +666,332 @@ router.put('/batch-size', auth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Batch size güncelleme hatası',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/auto-messages:
+ *   get:
+ *     summary: Otomatik mesajları listele
+ *     description: Otomatik mesajları filtreleme, sayfalama ve sıralama seçenekleriyle listeler
+ *     tags: [Otomatik Mesaj]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Sayfa numarası
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *           maximum: 100
+ *         description: Sayfa başına öğe sayısı
+ *       - in: query
+ *         name: senderId
+ *         schema:
+ *           type: string
+ *         description: Gönderen kullanıcı ID'si
+ *       - in: query
+ *         name: receiverId
+ *         schema:
+ *           type: string
+ *         description: Alıcı kullanıcı ID'si
+ *       - in: query
+ *         name: isQueued
+ *         schema:
+ *           type: boolean
+ *         description: Kuyruğa eklenmiş mesajlar
+ *       - in: query
+ *         name: isSent
+ *         schema:
+ *           type: boolean
+ *         description: Gönderilmiş mesajlar
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Başlangıç tarihi (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Bitiş tarihi (YYYY-MM-DD)
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [sendDate, createdAt, updatedAt]
+ *           default: sendDate
+ *         description: Sıralama kriteri
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *         description: Sıralama yönü
+ *     responses:
+ *       200:
+ *         description: Otomatik mesajlar başarıyla listelendi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     autoMessages:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                           senderId:
+ *                             type: object
+ *                             properties:
+ *                               _id:
+ *                                 type: string
+ *                               username:
+ *                                 type: string
+ *                               email:
+ *                                 type: string
+ *                           receiverId:
+ *                             type: object
+ *                             properties:
+ *                               _id:
+ *                                 type: string
+ *                               username:
+ *                                 type: string
+ *                               email:
+ *                                 type: string
+ *                           content:
+ *                             type: string
+ *                           sendDate:
+ *                             type: string
+ *                             format: date-time
+ *                           isQueued:
+ *                             type: boolean
+ *                           isSent:
+ *                             type: boolean
+ *                           sentAt:
+ *                             type: string
+ *                             format: date-time
+ *                           conversationId:
+ *                             type: object
+ *                             properties:
+ *                               _id:
+ *                                 type: string
+ *                               title:
+ *                                 type: string
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         currentPage:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                         totalItems:
+ *                           type: integer
+ *                         itemsPerPage:
+ *                           type: integer
+ *                         hasNextPage:
+ *                           type: boolean
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *             example:
+ *               success: true
+ *               data:
+ *                 autoMessages:
+ *                   - _id: "507f1f77bcf86cd799439011"
+ *                     senderId:
+ *                       _id: "507f1f77bcf86cd799439012"
+ *                       username: "john_doe"
+ *                       email: "john@example.com"
+ *                     receiverId:
+ *                       _id: "507f1f77bcf86cd799439013"
+ *                       username: "jane_doe"
+ *                       email: "jane@example.com"
+ *                     content: "Merhaba! Bu otomatik bir mesajdır."
+ *                     sendDate: "2024-01-15T10:00:00.000Z"
+ *                     isQueued: true
+ *                     isSent: false
+ *                     sentAt: null
+ *                     conversationId:
+ *                       _id: "507f1f77bcf86cd799439014"
+ *                       title: "Genel Sohbet"
+ *                     createdAt: "2024-01-15T09:30:00.000Z"
+ *                     updatedAt: "2024-01-15T09:30:00.000Z"
+ *                 pagination:
+ *                   currentPage: 1
+ *                   totalPages: 5
+ *                   totalItems: 50
+ *                   itemsPerPage: 10
+ *                   hasNextPage: true
+ *                   hasPrevPage: false
+ *               timestamp: "2024-01-15T10:30:00.000Z"
+ *       401:
+ *         description: Yetkilendirme hatası
+ *       500:
+ *         description: Otomatik mesajları listeleme hatası
+ */
+// Otomatik mesajları listele
+router.get('/', auth, async (req, res) => {
+  try {
+    const {
+      page,
+      limit,
+      senderId,
+      receiverId,
+      isQueued,
+      isSent,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder
+    } = req.query;
+
+    const options = {
+      page: parseInt(page) || 1,
+      limit: Math.min(parseInt(limit) || 10, 100), // Maksimum 100 öğe
+      senderId,
+      receiverId,
+      isQueued: isQueued !== undefined ? isQueued === 'true' : undefined,
+      isSent: isSent !== undefined ? isSent === 'true' : undefined,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder
+    };
+
+    const result = await autoMessageService.getAutoMessages(options);
+    
+    res.json({
+      success: true,
+      data: result,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Otomatik mesajları listeleme hatası',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/v1/auto-messages/{autoMessageId}:
+ *   get:
+ *     summary: Belirli bir otomatik mesajı getir
+ *     description: ID ile belirli bir otomatik mesajı detaylarıyla birlikte getirir
+ *     tags: [Otomatik Mesaj]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: autoMessageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Otomatik mesaj ID'si
+ *         example: "507f1f77bcf86cd799439011"
+ *     responses:
+ *       200:
+ *         description: Otomatik mesaj başarıyla getirildi
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                     senderId:
+ *                       type: object
+ *                     receiverId:
+ *                       type: object
+ *                     content:
+ *                       type: string
+ *                     sendDate:
+ *                       type: string
+ *                       format: date-time
+ *                     isQueued:
+ *                       type: boolean
+ *                     isSent:
+ *                       type: boolean
+ *                     sentAt:
+ *                       type: string
+ *                       format: date-time
+ *                     conversationId:
+ *                       type: object
+ *                     messageId:
+ *                       type: object
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *       401:
+ *         description: Yetkilendirme hatası
+ *       404:
+ *         description: Otomatik mesaj bulunamadı
+ *       500:
+ *         description: Otomatik mesaj getirme hatası
+ */
+// Belirli bir otomatik mesajı getir
+router.get('/:autoMessageId', auth, validateAutoMessageId, async (req, res) => {
+  try {
+    const { autoMessageId } = req.params;
+    const autoMessage = await autoMessageService.getAutoMessageById(autoMessageId);
+    
+    res.json({
+      success: true,
+      data: autoMessage,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    if (error.message === 'Otomatik mesaj bulunamadı') {
+      return res.status(404).json({
+        success: false,
+        message: 'Otomatik mesaj bulunamadı'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Otomatik mesaj getirme hatası',
       error: error.message
     });
   }

@@ -19,10 +19,10 @@ class QueueManagerService {
   constructor() {
     this.scheduler = null;
     this.isRunning = false;
-    this.batchSize = 50; // Her seferde işlenecek maksimum mesaj sayısı
+    this.batchSize = 50; // işelenecek max mesaj sayısı
   }
 
-  // Gönderim zamanı gelen mesajları kuyruğa ekle
+  // mesajları kuyruğa ekle
   async processReadyMessages() {
     if (this.isRunning) {
       logger.warn('Kuyruk işleme zaten çalışıyor, atlanıyor...');
@@ -35,7 +35,6 @@ class QueueManagerService {
     try {
       const now = new Date();
       
-      // Gönderim zamanı geçmiş ve henüz kuyruğa eklenmemiş mesajları bul
       const readyMessages = await AutoMessage.find({
         sendDate: { $lte: now },
         isQueued: false,
@@ -57,7 +56,6 @@ class QueueManagerService {
       let successCount = 0;
       let errorCount = 0;
 
-      // Her mesajı RabbitMQ kuyruğuna ekle
       for (const autoMessage of readyMessages) {
         try {
           const queueMessage = {
@@ -70,11 +68,9 @@ class QueueManagerService {
             createdAt: autoMessage.createdAt,
             type: 'auto_message'
           };
-
-          // RabbitMQ kuyruğuna gönder
+          // mesajları kuyruğa gönder
           await rabbitmqService.sendToQueue('message_sending_queue', queueMessage);
 
-          // AutoMessage'ı kuyruğa eklendi olarak işaretle
           await AutoMessage.findByIdAndUpdate(autoMessage._id, {
             isQueued: true,
             updatedAt: new Date()
@@ -91,7 +87,7 @@ class QueueManagerService {
 
       logger.info(`Kuyruk işleme tamamlandı - Başarılı: ${successCount}, Hatalı: ${errorCount}`);
 
-      // İstatistikler
+      // istatistikler
       const totalQueued = await AutoMessage.countDocuments({
         isQueued: true,
         isSent: false
@@ -113,11 +109,10 @@ class QueueManagerService {
     }
   }
 
-  // Cron job başlat
+  // cron job başlat
   startScheduler() {
-    // Her dakika çalış
     this.scheduler = new cron.CronJob(
-      '0 * * * * *', // Her dakika
+      '0 * * * * *', // dakikada bir
       async () => {
         logger.debug('Cron job tetiklendi - Kuyruk işleme');
         await this.processReadyMessages();
@@ -131,7 +126,7 @@ class QueueManagerService {
     logger.info('Kuyruk yöneticisi başlatıldı (Her dakika)');
   }
 
-  // Cron job durdur
+  // cron job durdur
   stopScheduler() {
     if (this.scheduler) {
       this.scheduler.stop();
@@ -139,13 +134,13 @@ class QueueManagerService {
     }
   }
 
-  // Manuel tetikleme
+  // manuel tetikleme
   async triggerManualProcessing() {
     logger.info('Manuel kuyruk işleme tetiklendi');
     await this.processReadyMessages();
   }
 
-  // Kuyruk durumunu kontrol et
+  // kuyruk durumunu kontrol et
   async getQueueStatus() {
     const now = new Date();
     
@@ -184,7 +179,7 @@ class QueueManagerService {
     };
   }
 
-  // Batch size'ı ayarla
+  // batch size'ı ayarla
   setBatchSize(size) {
     if (size > 0 && size <= 1000) {
       this.batchSize = size;
@@ -194,7 +189,7 @@ class QueueManagerService {
     }
   }
 
-  // Belirli bir mesajı manuel olarak kuyruğa ekle
+  // bir mesajı manuel olarak kuyruğa ekle
   async queueSpecificMessage(autoMessageId) {
     try {
       const autoMessage = await AutoMessage.findById(autoMessageId)
@@ -241,7 +236,7 @@ class QueueManagerService {
     }
   }
 
-  // Kuyruk temizleme (test amaçlı)
+  // kuyruk temizleme (test)
   async clearQueue() {
     try {
       await AutoMessage.updateMany(

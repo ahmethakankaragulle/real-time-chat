@@ -11,6 +11,7 @@ class RedisService {
     });
   }
 
+  // redis bağlantısını kur
   async connect() {
     try {
       this.client = redis.createClient({
@@ -32,6 +33,7 @@ class RedisService {
     }
   }
 
+  // kullanıcıyı online olarak işaretle
   async setUserOnline(userId, socketId) {
     try {
       const userKey = `user:${userId}`;
@@ -41,40 +43,42 @@ class RedisService {
         onlineAt: new Date().toISOString(),
         isOnline: true
       };
-      
+
       await this.client.setEx(userKey, 3600, JSON.stringify(userData));
 
       await this.addOnlineUser(userId);
-      
+
       this.logger.info(`Kullanıcı online: ${userId} - Socket: ${socketId}`);
     } catch (error) {
       this.logger.error('Kullanıcı online set hatası:', error);
     }
   }
 
+  // kullanıcıyı offline olarak işaretle
   async setUserOffline(userId) {
     try {
       const userKey = `user:${userId}`;
       await this.client.del(userKey);
 
       await this.removeOnlineUser(userId);
-      
+
       this.logger.info(`Kullanıcı offline: ${userId}`);
     } catch (error) {
       this.logger.error('Kullanıcı offline set hatası:', error);
     }
   }
 
+  // kullanıcının socket ID'sini getir
   async getUserSocketId(userId) {
     try {
       const userKey = `user:${userId}`;
       const userData = await this.client.get(userKey);
-      
+
       if (userData) {
         const parsed = JSON.parse(userData);
         return parsed.socketId;
       }
-      
+
       return null;
     } catch (error) {
       this.logger.error('Kullanıcı socket ID alma hatası:', error);
@@ -82,6 +86,7 @@ class RedisService {
     }
   }
 
+  // kullanıcıyı online olarak işaretle
   async addOnlineUser(userId) {
     try {
       await this.client.sAdd('online_users', userId.toString());
@@ -91,6 +96,7 @@ class RedisService {
     }
   }
 
+  // kullanıcıyı offline olarak işaretle
   async removeOnlineUser(userId) {
     try {
       await this.client.sRem('online_users', userId.toString());
@@ -100,6 +106,7 @@ class RedisService {
     }
   }
 
+  // kullanıcının online olup olmadığını kontrol et
   async isUserOnline(userId) {
     try {
       return await this.client.sIsMember('online_users', userId.toString());
@@ -109,6 +116,7 @@ class RedisService {
     }
   }
 
+  // online kullanıcıları getir
   async getOnlineUsers() {
     try {
       return await this.client.sMembers('online_users');
@@ -118,6 +126,7 @@ class RedisService {
     }
   }
 
+  // online kullanıcı sayısını getir
   async getOnlineUserCount() {
     try {
       return await this.client.sCard('online_users');
@@ -127,6 +136,7 @@ class RedisService {
     }
   }
 
+  // cache set
   async setCache(key, value, ttl = 3600) {
     try {
       await this.client.setEx(key, ttl, JSON.stringify(value));
@@ -135,6 +145,7 @@ class RedisService {
     }
   }
 
+  // cache get
   async getCache(key) {
     try {
       const value = await this.client.get(key);
@@ -145,6 +156,7 @@ class RedisService {
     }
   }
 
+  // cache delete
   async deleteCache(key) {
     try {
       await this.client.del(key);
@@ -153,6 +165,7 @@ class RedisService {
     }
   }
 
+  // session set
   async setSession(sessionId, userData, ttl = 86400) {
     try {
       await this.client.setEx(`session:${sessionId}`, ttl, JSON.stringify(userData));
@@ -161,6 +174,7 @@ class RedisService {
     }
   }
 
+  // session get
   async getSession(sessionId) {
     try {
       const value = await this.client.get(`session:${sessionId}`);
@@ -171,6 +185,7 @@ class RedisService {
     }
   }
 
+  // session delete
   async deleteSession(sessionId) {
     try {
       await this.client.del(`session:${sessionId}`);
@@ -179,8 +194,9 @@ class RedisService {
     }
   }
 
+  // token blacklist'e ekle
   async addToBlacklist(token, expiresIn) {
-    try { 
+    try {
       const ttl = Math.ceil(expiresIn / 1000);
       await this.client.setEx(`blacklist:${token}`, ttl, '1');
       this.logger.info(`Token blacklist'e eklendi: ${token.substring(0, 20)}...`);
@@ -189,6 +205,7 @@ class RedisService {
     }
   }
 
+  // token blacklist kontrol
   async isTokenBlacklisted(token) {
     try {
       const exists = await this.client.exists(`blacklist:${token}`);
@@ -199,6 +216,7 @@ class RedisService {
     }
   }
 
+  // token blacklist'ten kaldır
   async removeFromBlacklist(token) {
     try {
       await this.client.del(`blacklist:${token}`);
@@ -208,6 +226,7 @@ class RedisService {
     }
   }
 
+  // expired token blacklist temizle
   async clearExpiredBlacklist() {
     try {
       this.logger.info('Blacklist temizlik işlemi tamamlandı');
@@ -216,6 +235,7 @@ class RedisService {
     }
   }
 
+  // blacklist sayısını getir
   async getBlacklistCount() {
     try {
       const keys = await this.client.keys('blacklist:*');
@@ -226,6 +246,7 @@ class RedisService {
     }
   }
 
+  // redis bağlantısını kapat
   async disconnect() {
     if (this.client) {
       await this.client.quit();

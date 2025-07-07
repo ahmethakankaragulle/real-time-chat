@@ -1,6 +1,6 @@
 # 🚀 Real-Time Chat Uygulaması
 
-Modern, ölçeklenebilir ve güvenli gerçek zamanlı sohbet uygulaması. Socket.IO, MongoDB, Redis, RabbitMQ ve Elasticsearch teknolojilerini kullanarak geliştirilmiştir.
+Modern, ölçeklenebilir ve güvenli gerçek zamanlı sohbet uygulaması. Socket.IO, MongoDB, Redis, RabbitMQ ve Elasticsearch teknolojilerini kullanarak geliştirilmiştir. (Bu Readme dosyası yapay zeka ile oluşturulmuştur)
 
 ## 📋 İçindekiler
 
@@ -156,7 +156,7 @@ RATE_LIMIT_MAX_REQUESTS=100
 docker-compose up -d mongo redis rabbitmq elasticsearch
 
 # Logları izle
-docker-compose logs -f app
+docker-compose logs -f
 
 # uygulamayı başlat
 npm run dev
@@ -442,6 +442,8 @@ const isValid = await bcrypt.compare(password, hashedPassword);
 
 ## 🧪 Test
 
+(Test dosyaları yapay zeka ile oluşturulmuştur)
+
 ### Test Dosyaları
 ```bash
 # Socket.IO testleri
@@ -452,6 +454,9 @@ node test-elasticsearch.js
 
 # Otomatik mesaj sistemi testleri
 node test-auto-message-system.js
+
+# Güvenlik sistemi testleri
+node test-security.js
 ```
 
 ### Test Özellikleri
@@ -460,6 +465,7 @@ node test-auto-message-system.js
 - **Elasticsearch arama testleri**
 - **Otomatik mesaj sistemi testleri**
 - **API endpoint testleri**
+-- **API endpoint güvenlik testleri**
 
 ### Manuel Test
 ```bash

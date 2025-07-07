@@ -4,6 +4,7 @@ import redisService from './redis.service.js';
 
 class AuthService {
 
+  // kullanıcı kayıt
   async registerUser(username, email, password) {
     const existingUser = await User.findOne({
       $or: [{ email }, { username }]
@@ -44,6 +45,7 @@ class AuthService {
     };
   }
 
+  // kullanıcı giriş
   async loginUser(email, password) {
     const user = await User.findOne({ email });
     if (!user) {
@@ -62,6 +64,7 @@ class AuthService {
     user.lastSeen = new Date();
     await user.save();
 
+    // kullanıcıyı online olarak işaretle
     await redisService.addOnlineUser(user._id);
 
     const accessToken = jwt.sign(
@@ -87,6 +90,7 @@ class AuthService {
     };
   }
 
+  // token yenile
   async refreshToken(refreshToken, oldAccessToken = null) {
     const isBlacklisted = await redisService.isTokenBlacklisted(refreshToken);
     if (isBlacklisted) {
@@ -100,7 +104,7 @@ class AuthService {
       throw new Error('Geçersiz refresh token');
     }
 
-
+    // eski access token'ı blacklist'e ekle
     if (oldAccessToken) {
       try {
         const decodedAccess = jwt.decode(oldAccessToken);
@@ -115,7 +119,7 @@ class AuthService {
       }
     }
 
-    // Eski refresh token'ı da blacklist'e ekle
+    // eski refresh token'ı da blacklist'e ekle
     try {
       const decodedRefresh = jwt.decode(refreshToken);
       if (decodedRefresh && decodedRefresh.exp) {
@@ -128,7 +132,7 @@ class AuthService {
       console.error('Eski refresh token blacklist ekleme hatası:', error);
     }
 
-    // Yeni token'ları oluştur
+    // yeni token'ları oluştur
     const newAccessToken = jwt.sign(
       { userId: user._id, username: user.username },
       process.env.JWT_SECRET,
@@ -147,6 +151,7 @@ class AuthService {
     };
   }
 
+  // kullanıcı çıkış
   async logoutUser(userId, accessToken, refreshToken = null) {
     await User.findByIdAndUpdate(userId, {
       lastSeen: new Date()
@@ -185,6 +190,7 @@ class AuthService {
     }
   }
 
+  // kullanıcıyı ID ile getir
   async getUserById(userId) {
     const user = await User.findById(userId);
     if (!user) {
@@ -193,18 +199,21 @@ class AuthService {
     return user;
   }
 
+  // şifreyi doğrula
   validatePassword(password) {
     if (!password || password.length < 6) {
       throw new Error('Şifre en az 6 karakter olmalı');
     }
   }
 
+  // giriş verilerini doğrula
   validateLoginData(email, password) {
     if (!email || !password) {
       throw new Error('Email ve şifre gerekli');
     }
   }
 
+  // kayıt verilerini doğrula
   validateRegisterData(username, email, password) {
     if (!username || !email || !password) {
       throw new Error('Tüm alanlar gerekli');

@@ -5,6 +5,7 @@ import redisService from './redis.service.js';
 
 class ConversationService {
 
+  // kullanıcının conversationlarını getir
   async getUserConversations(userId, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
 
@@ -71,6 +72,7 @@ class ConversationService {
     return result;
   }
 
+  // conversation'ı getir
   async getConversationById(conversationId, userId) {
     const conversation = await Conversation.findById(conversationId)
       .populate('participants', 'username  lastSeen')
@@ -107,6 +109,7 @@ class ConversationService {
     };
   }
 
+  // conversation oluştur
   async createConversation(userId, participantId) {
     if (!participantId) {
       throw new Error('Katılımcı ID gerekli');
@@ -139,6 +142,7 @@ class ConversationService {
     return conversation;
   }
 
+  // conversation sil
   async deleteConversation(conversationId, userId) {
     const conversation = await Conversation.findById(conversationId);
     if (!conversation) {
@@ -155,6 +159,7 @@ class ConversationService {
     return true;
   }
 
+  // conversation'ın son mesajını güncelle
   async updateConversationLastMessage(conversationId, messageId) {
     const conversation = await Conversation.findById(conversationId);
     if (conversation) {

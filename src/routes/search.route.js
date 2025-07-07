@@ -182,7 +182,7 @@ const router = express.Router();
  *   get:
  *     summary: Mesajlarda arama yap
  *     description: Elasticsearch kullanarak mesajlarda tam metin araması yapar
- *     tags: [Arama]
+ *     tags: [Arama - Elasticsearch]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -352,7 +352,7 @@ router.get('/messages', auth, validateSearch, async (req, res) => {
  *   get:
  *     summary: Kullanıcılarda arama yap
  *     description: Elasticsearch kullanarak kullanıcılarda tam metin araması yapar
- *     tags: [Arama]
+ *     tags: [Arama - Elasticsearch]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -484,7 +484,7 @@ router.get('/users', auth, validateSearch, async (req, res) => {
  *   get:
  *     summary: Genel arama yap
  *     description: Hem mesajlarda hem de kullanıcılarda arama yapar
- *     tags: [Arama]
+ *     tags: [Arama - Elasticsearch]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -623,7 +623,7 @@ router.get('/global', auth, validateSearch, async (req, res) => {
  *   get:
  *     summary: Elasticsearch durumunu kontrol et
  *     description: Elasticsearch cluster sağlığı ve indeks durumlarını gösterir
- *     tags: [Arama]
+ *     tags: [Arama - Elasticsearch]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -683,74 +683,11 @@ router.get('/status', auth, async (req, res) => {
 
 /**
  * @swagger
- * /api/v1/search/reindex:
- *   post:
- *     summary: Tüm indeksleri yeniden oluştur
- *     description: Tüm mesaj ve kullanıcı indekslerini yeniden oluşturur (Sadece admin)
- *     tags: [Arama - Admin]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: İndeksler başarıyla yeniden oluşturuldu
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- *             example:
- *               success: true
- *               message: "İndeksler yeniden oluşturuldu"
- *               timestamp: "2024-01-15T10:30:00.000Z"
- *       401:
- *         description: Yetkilendirme hatası
- *       403:
- *         description: Admin yetkisi gerekli
- *       500:
- *         description: Sunucu hatası
- */
-// İndeksleri yeniden oluştur (sadece admin)
-router.post('/reindex', auth, async (req, res) => {
-  try {
-    // Admin kontrolü
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Bu işlem için admin yetkisi gerekli'
-      });
-    }
-
-    await elasticsearchService.reindexAll();
-
-    res.json({
-      success: true,
-      message: 'İndeksler yeniden oluşturuldu',
-      timestamp: new Date()
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'İndeks yeniden oluşturma hatası',
-      error: error.message
-    });
-  }
-});
-
-/**
- * @swagger
  * /api/v1/search/index-message/{messageId}:
  *   post:
  *     summary: Belirli bir mesajı indeksle
  *     description: Veritabanından bir mesajı alıp Elasticsearch'e indeksler
- *     tags: [Arama]
+ *     tags: [Arama - Elasticsearch]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -846,7 +783,7 @@ router.post('/index-message/:messageId', auth, async (req, res) => {
  *   post:
  *     summary: Belirli bir kullanıcıyı indeksle
  *     description: Veritabanından bir kullanıcıyı alıp Elasticsearch'e indeksler
- *     tags: [Arama]
+ *     tags: [Arama - Elasticsearch]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -921,216 +858,5 @@ router.post('/index-user/:userId', auth, async (req, res) => {
   }
 });
 
-/**
- * @swagger
- * /api/v1/search/index-all-messages:
- *   post:
- *     summary: Tüm mesajları indeksle
- *     description: Veritabanındaki tüm mesajları Elasticsearch'e indeksler (Sadece admin)
- *     tags: [Arama - Admin]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Toplu mesaj indeksleme tamamlandı
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     total:
- *                       type: integer
- *                       description: Toplam mesaj sayısı
- *                     successCount:
- *                       type: integer
- *                       description: Başarıyla indekslenen mesaj sayısı
- *                     errorCount:
- *                       type: integer
- *                       description: Hata alan mesaj sayısı
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- *             example:
- *               success: true
- *               message: "Toplu mesaj indeksleme tamamlandı"
- *               data:
- *                 total: 1000
- *                 successCount: 995
- *                 errorCount: 5
- *               timestamp: "2024-01-15T10:30:00.000Z"
- *       401:
- *         description: Yetkilendirme hatası
- *       403:
- *         description: Admin yetkisi gerekli
- *       500:
- *         description: Sunucu hatası
- */
-// Tüm mesajları indeksle (sadece admin)
-router.post('/index-all-messages', auth, async (req, res) => {
-  try {
-    // Admin kontrolü
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Bu işlem için admin yetkisi gerekli'
-      });
-    }
-
-    const Message = (await import('../models/message.model.js')).default;
-    const messages = await Message.find()
-      .populate('senderId', 'username')
-      .populate('receiverId', 'username')
-      .sort({ createdAt: 1 });
-
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const message of messages) {
-      try {
-        const messageData = {
-          _id: message._id,
-          content: message.content,
-          senderId: message.senderId._id,
-          receiverId: message.receiverId._id,
-          conversationId: message.conversationId,
-          isRead: message.isRead,
-          createdAt: message.createdAt,
-          updatedAt: message.updatedAt,
-          senderUsername: message.senderId.username,
-          receiverUsername: message.receiverId.username
-        };
-
-        await elasticsearchService.indexMessage(messageData);
-        successCount++;
-      } catch (error) {
-        errorCount++;
-        console.error(`Mesaj indeksleme hatası (${message._id}):`, error);
-      }
-    }
-
-    res.json({
-      success: true,
-      message: 'Toplu mesaj indeksleme tamamlandı',
-      data: {
-        total: messages.length,
-        successCount,
-        errorCount
-      },
-      timestamp: new Date()
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Toplu mesaj indeksleme hatası',
-      error: error.message
-    });
-  }
-});
-
-/**
- * @swagger
- * /api/v1/search/index-all-users:
- *   post:
- *     summary: Tüm kullanıcıları indeksle
- *     description: Veritabanındaki tüm kullanıcıları Elasticsearch'e indeksler (Sadece admin)
- *     tags: [Arama - Admin]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Toplu kullanıcı indeksleme tamamlandı
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     total:
- *                       type: integer
- *                       description: Toplam kullanıcı sayısı
- *                     successCount:
- *                       type: integer
- *                       description: Başarıyla indekslenen kullanıcı sayısı
- *                     errorCount:
- *                       type: integer
- *                       description: Hata alan kullanıcı sayısı
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- *             example:
- *               success: true
- *               message: "Toplu kullanıcı indeksleme tamamlandı"
- *               data:
- *                 total: 50
- *                 successCount: 48
- *                 errorCount: 2
- *               timestamp: "2024-01-15T10:30:00.000Z"
- *       401:
- *         description: Yetkilendirme hatası
- *       403:
- *         description: Admin yetkisi gerekli
- *       500:
- *         description: Sunucu hatası
- */
-// Tüm kullanıcıları indeksle (sadece admin)
-router.post('/index-all-users', auth, async (req, res) => {
-  try {
-    // Admin kontrolü
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Bu işlem için admin yetkisi gerekli'
-      });
-    }
-
-    const User = (await import('../models/user.model.js')).default;
-    const users = await User.find().sort({ createdAt: 1 });
-
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const user of users) {
-      try {
-        await elasticsearchService.indexUser(user);
-        successCount++;
-      } catch (error) {
-        errorCount++;
-        console.error(`Kullanıcı indeksleme hatası (${user._id}):`, error);
-      }
-    }
-
-    res.json({
-      success: true,
-      message: 'Toplu kullanıcı indeksleme tamamlandı',
-      data: {
-        total: users.length,
-        successCount,
-        errorCount
-      },
-      timestamp: new Date()
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Toplu kullanıcı indeksleme hatası',
-      error: error.message
-    });
-  }
-});
 
 export default router; 

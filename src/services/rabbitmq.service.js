@@ -128,11 +128,9 @@ class RabbitMQService {
           } catch (error) {
             logger.error('Mesaj işleme hatası:', error);
             
-            // Retry mekanizması
             const retryCount = (msg.properties.headers['x-retry-count'] || 0) + 1;
             
             if (retryCount < 3) {
-              // Mesajı retry kuyruğuna gönder
               const retryMessage = {
                 ...JSON.parse(msg.content.toString()),
                 retryCount
@@ -148,7 +146,6 @@ class RabbitMQService {
               this.channel.ack(msg);
               logger.info(`Mesaj retry kuyruğuna gönderildi (deneme ${retryCount}/3)`);
             } else {
-              // Maksimum retry aşıldı, mesajı reddet
               this.channel.nack(msg, false, false);
               logger.error(`Mesaj maksimum retry sayısını aştı: ${message.id}`);
             }

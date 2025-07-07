@@ -1,5 +1,6 @@
 import express from 'express';
 import conversationService from '../services/conversation.service.js';
+import auth from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -48,7 +49,7 @@ const router = express.Router();
  *       500:
  *         description: Sunucu hatası
  */
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     const userId = req.user._id;
     const page = parseInt(req.query.page) || 1;
@@ -103,7 +104,7 @@ router.get('/', async (req, res) => {
  *       500:
  *         description: Sunucu hatası
  */
-router.get('/:conversationId', async (req, res) => {
+router.get('/:conversationId', auth, async (req, res) => {
   try {
     const { conversationId } = req.params;
     const userId = req.user._id;
@@ -179,7 +180,7 @@ router.get('/:conversationId', async (req, res) => {
  *       500:
  *         description: Sunucu hatası
  */
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
   try {
     const { participantId } = req.body;
     const userId = req.user._id;
@@ -263,7 +264,7 @@ router.post('/', async (req, res) => {
  *       500:
  *         description: Sunucu hatası
  */
-router.delete('/:conversationId', async (req, res) => {
+router.delete('/:conversationId', auth, async (req, res) => {
   try {
     const { conversationId } = req.params;
     const userId = req.user._id;

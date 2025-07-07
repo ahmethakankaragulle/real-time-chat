@@ -98,7 +98,8 @@ class AuthService {
     const user = await User.findById(decoded.userId);
     if (!user || !user.isActive) {
       throw new Error('Geçersiz refresh token');
-    } 
+    }
+
 
     if (oldAccessToken) {
       try {
@@ -114,6 +115,7 @@ class AuthService {
       }
     }
 
+    // Eski refresh token'ı da blacklist'e ekle
     try {
       const decodedRefresh = jwt.decode(refreshToken);
       if (decodedRefresh && decodedRefresh.exp) {
@@ -126,6 +128,7 @@ class AuthService {
       console.error('Eski refresh token blacklist ekleme hatası:', error);
     }
 
+    // Yeni token'ları oluştur
     const newAccessToken = jwt.sign(
       { userId: user._id, username: user.username },
       process.env.JWT_SECRET,
@@ -151,6 +154,7 @@ class AuthService {
     
     await redisService.removeOnlineUser(userId);
 
+    // Access token'ı blacklist'e ekle
     if (accessToken) {
       try {
         const decoded = jwt.decode(accessToken);
@@ -165,6 +169,7 @@ class AuthService {
       }
     }
 
+    // Refresh token'ı da blacklist'e ekle (eğer varsa)
     if (refreshToken) {
       try {
         const decoded = jwt.decode(refreshToken);

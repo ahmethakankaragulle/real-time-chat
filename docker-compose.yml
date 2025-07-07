@@ -1,27 +1,37 @@
+version: '3.8'
+
 services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - "3001:3001"
     environment:
       - NODE_ENV=development
+      - PORT=3001
       - MONGODB_URI=mongodb://mongo:27017/live-chat
       - REDIS_URL=redis://redis:6379
-      - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
       - JWT_SECRET=Gm82f93D@ksl!38NF29fJdkSL82nfs
       - JWT_REFRESH_SECRET=SdK29f!FJ83kdLz29DjF8dKsl3Fj
     depends_on:
-      - mongo
-      - redis
-      - rabbitmq
+      mongo:
+        condition: service_started
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     volumes:
+      - ./logs:/app/logs
       - .:/app
       - /app/node_modules
     networks:
-      - live-chat-network
+      - chat-network
 
   mongo:
-    image: mongo:7.0
+    image: mongo:latest
     ports:
       - "27017:27017"
     environment:
@@ -29,35 +39,66 @@ services:
     volumes:
       - mongo_data:/data/db
     networks:
-      - live-chat-network
+      - chat-network
 
   redis:
-    image: redis:7.2-alpine
+    image: redis:alpine
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - live-chat-network
+      - chat-network
 
   rabbitmq:
-    image: rabbitmq:3.12-management-alpine
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
     ports:
-      - "8080:5672"
-      - "15672:15672"
+      - 5672:5672
+      - 15672:15672
     environment:
-      - RABBITMQ_DEFAULT_USER=admin
-      - RABBITMQ_DEFAULT_PASS=admin123
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    configs:
+      - source: rabbitmq-plugins
+        target: /etc/rabbitmq/enabled_plugins
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
-      - live-chat-network
+      - chat-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - chat-network
+
+configs:
+  rabbitmq-plugins:
+    content: "[rabbitmq_management]."  
 
 volumes:
   mongo_data:
   redis_data:
   rabbitmq_data:
+  elasticsearch_data:
 
 networks:
-  live-chat-network:
+  chat-network:
     driver: bridge 
+

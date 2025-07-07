@@ -1,5 +1,6 @@
 import User from '../models/user.model.js';
 import redisService from './redis.service.js';
+import elasticsearchService from './elasticsearch.service.js';
 
 class UserService {
   async getUsersList(page = 1, limit = 20) {
@@ -83,6 +84,13 @@ class UserService {
       updateData,
       { new: true, runValidators: true }
     ).select('-password');
+
+    // Elasticsearch'te güncelle
+    try {
+      await elasticsearchService.updateUser(userId.toString(), updateData);
+    } catch (error) {
+      console.error('Elasticsearch kullanıcı güncelleme hatası:', error);
+    }
 
     return user;
   }

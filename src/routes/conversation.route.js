@@ -6,7 +6,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/conversations:
+ * /api/v1/conversations:
  *   get:
  *     summary: Kullanıcının tüm konuşmalarını listeleme
  *     tags: [Conversations]
@@ -72,7 +72,7 @@ router.get('/', auth, async (req, res) => {
 
 /**
  * @swagger
- * /api/conversations/{conversationId}:
+ * /api/v1/conversations/{conversationId}:
  *   get:
  *     summary: Belirli bir konuşmayı getirme
  *     tags: [Conversations]
@@ -141,7 +141,7 @@ router.get('/:conversationId', auth, async (req, res) => {
 
 /**
  * @swagger
- * /api/conversations:
+ * /api/v1/conversations:
  *   post:
  *     summary: Yeni konuşma oluşturma
  *     tags: [Conversations]
@@ -232,7 +232,7 @@ router.post('/', auth, async (req, res) => {
 
 /**
  * @swagger
- * /api/conversations/{conversationId}:
+ * /api/v1/conversations/{conversationId}:
  *   delete:
  *     summary: Konuşmayı silme (pasif yapma)
  *     tags: [Conversations]

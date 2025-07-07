@@ -7,7 +7,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/user/list:
+ * /api/v1/user/list:
  *   get:
  *     summary: Kullanıcı listesi
  *     tags: [User]
@@ -52,7 +52,7 @@ router.get('/list', auth, async (req, res) => {
 
 /**
  * @swagger
- * /api/user/online:
+ * /api/v1/user/online:
  *   get:
  *     summary: Çevrimiçi kullanıcılar
  *     tags: [User]
@@ -83,7 +83,7 @@ router.get('/online', auth, async (req, res) => {
 
 /**
  * @swagger
- * /api/user/profile:
+ * /api/v1/user/profile:
  *   put:
  *     summary: Profil güncelleme
  *     tags: [User]
@@ -130,7 +130,7 @@ router.put('/profile', auth, async (req, res) => {
 
 /**
  * @swagger
- * /api/user/online-count:
+ * /api/v1/user/online-count:
  *   get:
  *     summary: Anlık online kullanıcı sayısı
  *     tags: [User]
@@ -164,7 +164,7 @@ router.get('/online-count', auth, async (req, res) => {
 
 /**
  * @swagger
- * /api/user/check-online/{userId}:
+ * /api/v1/user/check-online/{userId}:
  *   get:
  *     summary: Belirli kullanıcının online durumu
  *     tags: [User]

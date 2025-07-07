@@ -17,43 +17,43 @@ async function testAutoMessageSystem() {
   try {
     // 1. Sistem durumunu kontrol et
     console.log('1. Sistem durumu kontrol ediliyor...');
-    const statusResponse = await api.get('/api/auto-messages/status');
+    const statusResponse = await api.get('/api/v1/auto-messages/status');
     console.log('✅ Sistem durumu:', statusResponse.data.data);
     console.log('');
 
     // 2. RabbitMQ durumunu kontrol et
     console.log('2. RabbitMQ durumu kontrol ediliyor...');
-    const rabbitmqResponse = await api.get('/api/auto-messages/rabbitmq-status');
+    const rabbitmqResponse = await api.get('/api/v1/auto-messages/rabbitmq-status');
     console.log('✅ RabbitMQ durumu:', rabbitmqResponse.data.data);
     console.log('');
 
     // 3. İstatistikleri al
     console.log('3. İstatistikler alınıyor...');
-    const statsResponse = await api.get('/api/auto-messages/statistics');
+    const statsResponse = await api.get('/api/v1/auto-messages/statistics');
     console.log('✅ İstatistikler:', statsResponse.data.data);
     console.log('');
 
     // 4. Manuel planlama tetikle
     console.log('4. Manuel planlama tetikleniyor...');
-    const planningResponse = await api.post('/api/auto-messages/trigger-planning');
+    const planningResponse = await api.post('/api/v1/auto-messages/trigger-planning');
     console.log('✅ Manuel planlama:', planningResponse.data.message);
     console.log('');
 
     // 5. Manuel kuyruk işleme tetikle
     console.log('5. Manuel kuyruk işleme tetikleniyor...');
-    const queueResponse = await api.post('/api/auto-messages/trigger-queue-processing');
+    const queueResponse = await api.post('/api/v1/auto-messages/trigger-queue-processing');
     console.log('✅ Kuyruk işleme:', queueResponse.data.message);
     console.log('');
 
     // 6. Test mesajı gönder
     console.log('6. Test mesajı gönderiliyor...');
-    const testMessageResponse = await api.post('/api/auto-messages/send-test-message');
+    const testMessageResponse = await api.post('/api/v1/auto-messages/send-test-message');
     console.log('✅ Test mesajı:', testMessageResponse.data.message);
     console.log('');
 
     // 7. Güncellenmiş durumu kontrol et
     console.log('7. Güncellenmiş durum kontrol ediliyor...');
-    const updatedStatusResponse = await api.get('/api/auto-messages/status');
+    const updatedStatusResponse = await api.get('/api/v1/auto-messages/status');
     console.log('✅ Güncellenmiş durum:', updatedStatusResponse.data.data);
     console.log('');
 

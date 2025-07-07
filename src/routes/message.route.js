@@ -5,7 +5,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/messages/send:
+ * /api/v1/messages/send:
  *   post:
  *     summary: Yeni mesaj gönderme
  *     tags: [Messages]
@@ -111,7 +111,7 @@ router.post('/send', async (req, res) => {
 
 /**
  * @swagger
- * /api/messages/{conversationId}:
+ * /api/v1/messages/{conversationId}:
  *   get:
  *     summary: Belirli konuşmanın mesajlarını listeleme
  *     tags: [Messages]
@@ -201,7 +201,7 @@ router.get('/:conversationId', async (req, res) => {
 
 /**
  * @swagger
- * /api/messages/{messageId}/read:
+ * /api/v1/messages/{messageId}/read:
  *   put:
  *     summary: Mesajı okundu olarak işaretleme
  *     tags: [Messages]

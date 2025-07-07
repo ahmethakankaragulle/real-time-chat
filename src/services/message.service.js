@@ -2,6 +2,7 @@ import Message from '../models/message.model.js';
 import Conversation from '../models/conversation.model.js';
 import User from '../models/user.model.js';
 import conversationService from './conversation.service.js';
+import elasticsearchService from './elasticsearch.service.js';
 
 class MessageService {
   async sendMessage(senderId, content, conversationId = null, receiverId = null) {
@@ -50,6 +51,35 @@ class MessageService {
     await conversationService.updateConversationLastMessage(conversation._id, message._id);
 
     await message.populate('sender', 'username');
+
+    // Elasticsearch'e indeksle
+    try {
+      // Alıcı bilgisini bul
+      let receiverUsername = '';
+      if (receiverId) {
+        const receiver = await User.findById(receiverId).select('username');
+        receiverUsername = receiver ? receiver.username : '';
+      }
+
+      const messageData = {
+        _id: message._id,
+        content: message.content,
+        senderId: message.sender._id,
+        receiverId: receiverId,
+        conversationId: message.conversationId,
+        isRead: message.isRead || false,
+        createdAt: message.createdAt,
+        updatedAt: message.updatedAt,
+        senderUsername: message.sender.username,
+        receiverUsername: receiverUsername
+      };
+
+      console.log('messageData', messageData);
+      await elasticsearchService.indexMessage(messageData);
+    } catch (error) {
+      console.error('Elasticsearch indeksleme hatası:', error);
+      // Elasticsearch hatası mesaj gönderimini engellemez
+    }
 
     return {
       message,
@@ -102,6 +132,16 @@ class MessageService {
     message.isRead = true;
     message.readAt = new Date();
     await message.save();
+
+    // Elasticsearch'te güncelle
+    try {
+      await elasticsearchService.updateMessage(messageId.toString(), {
+        isRead: true,
+        readAt: message.readAt
+      });
+    } catch (error) {
+      console.error('Elasticsearch güncelleme hatası:', error);
+    }
 
     return message;
   }

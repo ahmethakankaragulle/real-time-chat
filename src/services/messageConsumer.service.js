@@ -4,6 +4,7 @@ import Message from '../models/message.model.js';
 import Conversation from '../models/conversation.model.js';
 import rabbitmqService from './rabbitmq.service.js';
 import socketService from './socket.service.js';
+import elasticsearchService from './elasticsearch.service.js';
 
 const logger = winston.createLogger({
   level: 'info',
@@ -46,7 +47,7 @@ class MessageConsumerService {
         receiverId: autoMessage.receiverId._id,
         content: autoMessage.content,
         conversationId: autoMessage.conversationId._id,
-        messageType: 'auto',
+        isAutoMessage: true,
         isRead: false
       });
 
@@ -64,13 +65,34 @@ class MessageConsumerService {
         messageId: newMessage._id
       });
 
+      // Elasticsearch'e indeksle
+      try {
+        const messageData = {
+          _id: newMessage._id,
+          content: autoMessage.content,
+          senderId: autoMessage.senderId._id,
+          receiverId: autoMessage.receiverId._id,
+          conversationId: autoMessage.conversationId._id,
+          isAutoMessage: true,
+          isRead: false,
+          createdAt: newMessage.createdAt,
+          updatedAt: newMessage.updatedAt,
+          senderUsername: autoMessage.senderId.username,
+          receiverUsername: autoMessage.receiverId.username
+        };
+
+        await elasticsearchService.indexMessage(messageData);
+      } catch (error) {
+        logger.error('Elasticsearch indeksleme hatası:', error);
+      }
+
       const messagePayload = {
         _id: newMessage._id,
         senderId: autoMessage.senderId._id,
         receiverId: autoMessage.receiverId._id,
         content: autoMessage.content,
         conversationId: autoMessage.conversationId._id,
-        messageType: 'auto',
+        isAutoMessage: true,
         isRead: false,
         createdAt: newMessage.createdAt,
         updatedAt: newMessage.updatedAt

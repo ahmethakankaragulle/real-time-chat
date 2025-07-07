@@ -8,8 +8,9 @@ class SocketService {
   constructor() {
     this.io = null;
     this.connectedUsers = new Map();
-  }
+  } 
 
+  // socket bağlantısını kur
   initialize(server) {
     this.io = new Server(server, {
       cors: {
@@ -38,6 +39,7 @@ class SocketService {
     this.setupEventHandlers();
   }
 
+  // event handler'ları ayarla
   setupEventHandlers() {
     this.io.on('connection', async (socket) => {
       console.log(`Kullanıcı bağlandı: ${socket.userId}`);
@@ -70,6 +72,7 @@ class SocketService {
     });
   }
 
+  // kullanıcı bağlantısını işle
   async handleUserConnection(socket) {
     try {
       await redisService.setUserOnline(socket.userId, socket.id);
@@ -99,6 +102,7 @@ class SocketService {
     }
   }
 
+  // conversation'a katıl
   async handleJoinRoom(socket, data) {
     try {
       const { conversationId } = data;
@@ -120,6 +124,7 @@ class SocketService {
     }
   }
 
+  // mesaj gönder
   async handleSendMessage(socket, data) {
     try {
       const { conversationId, content, receiverId } = data;
@@ -183,6 +188,7 @@ class SocketService {
     }
   }
 
+  // mesaj alındığında
   async handleMessageReceived(socket, data) {
     try {
       const { messageId } = data;
@@ -211,6 +217,7 @@ class SocketService {
     }
   }
 
+  // yazmaya başladığında
   async handleTypingStart(socket, data) {
     try {
       const { conversationId } = data;
@@ -243,6 +250,7 @@ class SocketService {
     }
   }
 
+  // yazmayı durdurduğunda
   async handleTypingStop(socket, data) {
     try {
       const { conversationId } = data;
@@ -275,6 +283,7 @@ class SocketService {
     }
   }
 
+  // kullanıcı ayrıldığında
   async handleUserDisconnection(socket) {
     try {
       await redisService.setUserOffline(socket.userId);
@@ -304,6 +313,7 @@ class SocketService {
     }
   }
 
+  // kullanıcıya mesaj gönder
   sendToUser(userId, event, data) {
     const socketId = this.connectedUsers.get(userId);
     if (socketId) {
@@ -311,18 +321,22 @@ class SocketService {
     }
   }
 
+  // conversation'a mesaj gönder
   sendToRoom(roomName, event, data) {
     this.io.to(roomName).emit(event, data);
   }
 
+  // tüm kullanıcılara mesaj gönder
   broadcast(event, data) {
     this.io.emit(event, data);
   }
 
+  // bağlı kullanıcı sayısını getir
   getConnectedUsersCount() {
     return this.connectedUsers.size;
   }
 
+  // kullanıcının online olup olmadığını kontrol et
   isUserOnline(userId) {
     return this.connectedUsers.has(userId);
   }

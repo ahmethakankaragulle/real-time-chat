@@ -21,7 +21,7 @@ class ElasticsearchService {
         this.userIndexName = 'users';
     }
 
-    // Elasticsearch bağlantısını kur
+    // elasticsearch bağlantısını kur   
     async connect() {
         try {
             this.client = new Client({
@@ -35,13 +35,13 @@ class ElasticsearchService {
                 }
             });
 
-            // Bağlantıyı test et
+            // bağlantıyı test et
             await this.client.ping();
             this.isConnected = true;
 
             logger.info('Elasticsearch bağlantısı başarılı');
 
-            // İndeksleri oluştur
+            // indeksleri oluştur
             await this.createIndices();
 
             return true;
@@ -52,10 +52,10 @@ class ElasticsearchService {
         }
     }
 
-    // İndeksleri oluştur
+    // indeksleri oluştur
     async createIndices() {
         try {
-            // Mesajlar için indeks
+            // mesajlar için indeks
             const messageIndexExists = await this.client.indices.exists({
                 index: this.indexName
             });
@@ -122,7 +122,7 @@ class ElasticsearchService {
                 logger.info(`Mesaj indeksi oluşturuldu: ${this.indexName}`);
             }
 
-            // Kullanıcılar için indeks
+            // kullanıcılar için indeks
             const userIndexExists = await this.client.indices.exists({
                 index: this.userIndexName
             });
@@ -194,7 +194,7 @@ class ElasticsearchService {
         }
     }
 
-    // Mesaj indeksle
+    // mesaj indeksle
     async indexMessage(messageData) {
         try {
             if (!this.isConnected) {
@@ -227,7 +227,7 @@ class ElasticsearchService {
         }
     }
 
-    // Kullanıcı indeksle
+    // kullanıcı indeksle
     async indexUser(userData) {
         try {
             if (!this.isConnected) {
@@ -259,7 +259,7 @@ class ElasticsearchService {
         }
     }
 
-    // Mesaj ara
+    // mesaj ara
     async searchMessages(query, options = {}) {
         try {
             if (!this.isConnected) {
@@ -280,7 +280,7 @@ class ElasticsearchService {
             const from = (page - 1) * limit;
             const size = limit;
 
-            // Arama sorgusu oluştur
+            // arama sorgusu oluştur
             const searchQuery = {
                 bool: {
                     must: [
@@ -297,7 +297,7 @@ class ElasticsearchService {
                 }
             };
 
-            // Filtreler ekle
+            // filtrelerİ ekle
             if (userId) {
                 searchQuery.bool.filter.push({
                     bool: {
@@ -366,7 +366,7 @@ class ElasticsearchService {
         }
     }
 
-    // Kullanıcı ara
+    // kullanıcı ara
     async searchUsers(query, options = {}) {
         try {
             if (!this.isConnected) {
@@ -453,7 +453,7 @@ class ElasticsearchService {
         }
     }
 
-    // Mesaj güncelle
+    // mesaj güncelle
     async updateMessage(messageId, updateData) {
         try {
             if (!this.isConnected) {
@@ -476,7 +476,7 @@ class ElasticsearchService {
         }
     }
 
-    // Kullanıcı güncelle
+    // kullanıcı güncelle
     async updateUser(userId, updateData) {
         try {
             if (!this.isConnected) {
@@ -499,7 +499,7 @@ class ElasticsearchService {
         }
     }
 
-    // Mesaj sil
+    // mesaj sil
     async deleteMessage(messageId) {
         try {
             if (!this.isConnected) {
@@ -519,7 +519,7 @@ class ElasticsearchService {
         }
     }
 
-    // Kullanıcı sil
+    // kullanıcı sil
     async deleteUser(userId) {
         try {
             if (!this.isConnected) {
@@ -539,7 +539,7 @@ class ElasticsearchService {
         }
     }
 
-    // İndeksleri yeniden oluştur (tüm verileri sil ve yeniden indeksle)
+    // indeksleri yeniden oluştur (tüm verileri sil ve yeniden indeksle)
     async reindexAll() {
         try {
             if (!this.isConnected) {
@@ -548,13 +548,13 @@ class ElasticsearchService {
 
             logger.info('Tüm indeksler yeniden oluşturuluyor...');
 
-            // Mevcut indeksleri sil
+            // mevcut indeksleri sil
             await this.client.indices.delete({
                 index: [this.indexName, this.userIndexName],
                 ignore_unavailable: true
             });
 
-            // İndeksleri yeniden oluştur
+            // indeksleri yeniden oluştur
             await this.createIndices();
 
             logger.info('İndeksler yeniden oluşturuldu');
@@ -565,7 +565,7 @@ class ElasticsearchService {
         }
     }
 
-    // İstatistikler
+    // istatistikler
     async getStats() {
         try {
             if (!this.isConnected) {
@@ -601,7 +601,7 @@ class ElasticsearchService {
         }
     }
 
-    // Bağlantıyı kapat
+    // bağlantıyı kapat
     async disconnect() {
         try {
             if (this.client) {

@@ -1,5 +1,4 @@
 import { body, param, query, validationResult } from 'express-validator';
-import { sanitize } from 'express-validator';
 
 // Validation sonuçlarını kontrol eden middleware
 export const validateRequest = (req, res, next) => {

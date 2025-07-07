@@ -4,7 +4,6 @@ import xss from 'xss-clean';
 import hpp from 'hpp';
 import cors from 'cors';
 
-// Rate limiting konfigürasyonu
 export const createRateLimit = (windowMs = 15 * 60 * 1000, max = 100) => {
   return rateLimit({
     windowMs,
@@ -26,10 +25,9 @@ export const createRateLimit = (windowMs = 15 * 60 * 1000, max = 100) => {
   });
 };
 
-// Auth endpoint'leri için özel rate limit
 export const authRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 dakika
-  max: 5, // 5 istek
+  windowMs: 15 * 60 * 1000,
+  max: 5,
   message: {
     success: false,
     message: 'Çok fazla giriş denemesi. Lütfen 15 dakika sonra tekrar deneyin.'
@@ -39,10 +37,9 @@ export const authRateLimit = rateLimit({
   skipSuccessfulRequests: true
 });
 
-// Register endpoint'i için daha sıkı rate limit
 export const registerRateLimit = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 saat
-  max: 3, // 3 istek
+  windowMs: 60 * 60 * 1000,
+  max: 3,
   message: {
     success: false,
     message: 'Çok fazla kayıt denemesi. Lütfen 1 saat sonra tekrar deneyin.'
@@ -51,10 +48,9 @@ export const registerRateLimit = rateLimit({
   legacyHeaders: false
 });
 
-// API endpoint'leri için rate limit
 export const apiRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 dakika
-  max: 1000, // 1000 istek
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
   message: {
     success: false,
     message: 'API rate limit aşıldı. Lütfen daha sonra tekrar deneyin.'
@@ -63,7 +59,6 @@ export const apiRateLimit = rateLimit({
   legacyHeaders: false
 });
 
-// Helmet konfigürasyonu
 export const helmetConfig = helmet({
   contentSecurityPolicy: {
     directives: {
@@ -82,15 +77,12 @@ export const helmetConfig = helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 });
 
-// CORS konfigürasyonu
 export const corsConfig = cors({
   origin: function (origin, callback) {
-    // Geliştirme ortamında tüm origin'lere izin ver
     if (process.env.NODE_ENV === 'development') {
       return callback(null, true);
     }
     
-    // Üretim ortamında sadece belirli domain'lere izin ver
     const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
     
     if (!origin || allowedOrigins.includes(origin)) {
@@ -102,13 +94,11 @@ export const corsConfig = cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
   credentials: true,
-  maxAge: 86400 // 24 saat
+  maxAge: 86400
 });
 
-// XSS koruması
 export const xssProtection = xss();
 
-// HTTP Parameter Pollution koruması
 export const hppProtection = hpp({
   whitelist: [
     'filter',
@@ -119,28 +109,16 @@ export const hppProtection = hpp({
   ]
 });
 
-// Güvenlik middleware'lerini birleştiren fonksiyon
 export const setupSecurityMiddleware = (app) => {
-  // Helmet
   app.use(helmetConfig);
-  
-  // CORS
   app.use(corsConfig);
-  
-  // XSS koruması
   app.use(xssProtection);
-  
-  // HPP koruması
   app.use(hppProtection);
   
-  // Genel rate limiting
   app.use('/api/', apiRateLimit);
-  
-  // Auth endpoint'leri için özel rate limiting
   app.use('/api/v1/auth/login', authRateLimit);
   app.use('/api/v1/auth/register', registerRateLimit);
   
-  // Güvenlik başlıkları
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');

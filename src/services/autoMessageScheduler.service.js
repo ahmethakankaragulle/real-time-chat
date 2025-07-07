@@ -22,7 +22,7 @@ class AutoMessageSchedulerService {
     this.isRunning = false;
   }
 
-  // Rastgele mesaj içerikleri
+  // rastgele mesaj içeriği oluştur
   getRandomMessageContent() {
     const messages = [
       "Merhaba! Nasılsın?",
@@ -45,7 +45,7 @@ class AutoMessageSchedulerService {
     return messages[Math.floor(Math.random() * messages.length)];
   }
 
-  // Kullanıcı listesini karıştır (Fisher-Yates algoritması)
+  // kullanıcıları karıştır
   shuffleUsers(users) {
     const shuffled = [...users];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -55,7 +55,7 @@ class AutoMessageSchedulerService {
     return shuffled;
   }
 
-  // Kullanıcıları ikişerli gruplara ayır
+  // kullanıcı çiftleri oluştur
   createUserPairs(users) {
     const pairs = [];
     const shuffledUsers = this.shuffleUsers(users);
@@ -76,12 +76,11 @@ class AutoMessageSchedulerService {
     return pairs;
   }
 
-  // Rastgele gönderim zamanı oluştur (bugün 09:00-23:00 arası)
+  // rastgele gönderim zamanı oluştur
   generateRandomSendTime() {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    // Bugün 09:00'dan 23:00'a kadar rastgele saat
     const startHour = 9;
     const endHour = 23;
     const randomHour = Math.floor(Math.random() * (endHour - startHour + 1)) + startHour;
@@ -90,7 +89,6 @@ class AutoMessageSchedulerService {
     const sendTime = new Date(today);
     sendTime.setHours(randomHour, randomMinute, 0, 0);
     
-    // Eğer oluşturulan zaman geçmişse, yarına taşı
     if (sendTime <= now) {
       sendTime.setDate(sendTime.getDate() + 1);
     }
@@ -98,16 +96,14 @@ class AutoMessageSchedulerService {
     return sendTime;
   }
 
-  // Konuşma oluştur veya mevcut olanı bul
+  // conversation oluştur veya getir
   async getOrCreateConversation(senderId, receiverId) {
     try {
-      // Mevcut konuşmayı ara
       let conversation = await Conversation.findOne({
         participants: { $all: [senderId, receiverId] }
       });
 
       if (!conversation) {
-        // Yeni konuşma oluştur
         conversation = new Conversation({
           participants: [senderId, receiverId],
           lastMessage: null,
@@ -124,7 +120,7 @@ class AutoMessageSchedulerService {
     }
   }
 
-  // Ana planlama fonksiyonu
+  // otomatik mesaj planlama
   async planAutoMessages() {
     if (this.isRunning) {
       logger.warn('Planlama işlemi zaten çalışıyor, atlanıyor...');
@@ -146,11 +142,9 @@ class AutoMessageSchedulerService {
 
       logger.info(`${activeUsers.length} aktif kullanıcı bulundu`);
 
-      // Kullanıcı çiftleri oluştur
       const userPairs = this.createUserPairs(activeUsers);
       logger.info(`${userPairs.length} kullanıcı çifti oluşturuldu`);
 
-      // Her çift için otomatik mesaj planla
       const autoMessages = [];
       
       for (const pair of userPairs) {
@@ -175,13 +169,11 @@ class AutoMessageSchedulerService {
         }
       }
 
-      // Toplu kaydetme
       if (autoMessages.length > 0) {
         await AutoMessage.insertMany(autoMessages);
         logger.info(`${autoMessages.length} otomatik mesaj planlandı`);
       }
 
-      // İstatistikler
       const totalPlanned = await AutoMessage.countDocuments({ 
         sendDate: { $gte: new Date() },
         isQueued: false 
@@ -197,11 +189,10 @@ class AutoMessageSchedulerService {
     }
   }
 
-  // Cron job başlat
+  // cron job başlat
   startScheduler() {
-    // Her gece saat 02:00'da çalış
     this.scheduler = new cron.CronJob(
-      '0 2 * * *', // Her gün saat 02:00
+      '*/10 * * * *', // Her 10 dakikada bir
       async () => {
         logger.info('Cron job tetiklendi - Otomatik mesaj planlama');
         await this.planAutoMessages();
@@ -212,10 +203,10 @@ class AutoMessageSchedulerService {
     );
 
     this.scheduler.start();
-    logger.info('Otomatik mesaj planlayıcı başlatıldı (Her gece 02:00)');
+    logger.info('Otomatik mesaj planlayıcı başlatıldı (Her 10 dakikada bir)');
   }
 
-  // Cron job durdur
+  // cron job durdur
   stopScheduler() {
     if (this.scheduler) {
       this.scheduler.stop();
@@ -223,13 +214,13 @@ class AutoMessageSchedulerService {
     }
   }
 
-  // Manuel tetikleme
+  // manuel planlama tetikle
   async triggerManualPlanning() {
     logger.info('Manuel planlama tetiklendi');
     await this.planAutoMessages();
   }
 
-  // Planlama durumunu kontrol et
+  // planlama durumunu getir
   async getPlanningStatus() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);

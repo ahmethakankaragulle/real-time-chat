@@ -43,8 +43,8 @@ class MessageConsumerService {
       }
 
       const newMessage = new Message({
-        senderId: autoMessage.senderId._id,
-        receiverId: autoMessage.receiverId._id,
+        sender: autoMessage.senderId._id,
+        receiver: autoMessage.receiverId._id,
         content: autoMessage.content,
         conversationId: autoMessage.conversationId._id,
         isAutoMessage: true,
@@ -65,13 +65,13 @@ class MessageConsumerService {
         messageId: newMessage._id
       });
 
-      // Elasticsearch'e indeksle
+      // Elasticsearch
       try {
         const messageData = {
           _id: newMessage._id,
           content: autoMessage.content,
-          senderId: autoMessage.senderId._id,
-          receiverId: autoMessage.receiverId._id,
+          sender: autoMessage.senderId._id,
+          receiver: autoMessage.receiverId._id,
           conversationId: autoMessage.conversationId._id,
           isAutoMessage: true,
           isRead: false,
@@ -88,8 +88,8 @@ class MessageConsumerService {
 
       const messagePayload = {
         _id: newMessage._id,
-        senderId: autoMessage.senderId._id,
-        receiverId: autoMessage.receiverId._id,
+        sender: autoMessage.senderId._id,
+        receiver: autoMessage.receiverId._id,
         content: autoMessage.content,
         conversationId: autoMessage.conversationId._id,
         isAutoMessage: true,
@@ -120,7 +120,7 @@ class MessageConsumerService {
 
     } catch (error) {
       logger.error(`Mesaj işleme hatası (${messageData.id}):`, error);
-      throw error; // Retry mekanizması için hatayı yeniden fırlat
+      throw error;
     }
   }
 
